@@ -36,6 +36,7 @@ table{border-collapse:collapse;width:100%;margin:12px 0}td,th{border:1px solid v
 <section class="panel sticky">
  <div class="actions"><button class="btn primary" onclick="grade()">Periksa Jawaban & Hitung Nilai</button><button class="btn secondary" onclick="resetQuiz()">Ulangi Try Out</button></div>
  <p class="small" id="progress">0 dari 25 soal telah dijawab.</p>
+ <p class="small" id="saveStatus" aria-live="polite">Memuat progres...</p>
 </section>
 <section id="result" class="panel result" aria-live="polite"></section>
 </main>
@@ -207,9 +208,9 @@ function updateProgress() {
   
 function grade() {
   if (window.quizSubmitted) return;
-  saveProgress();
 
   window.quizSubmitted = true;
+  saveProgress();
 
   let total = 0;
   let answered = 0;
