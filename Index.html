@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Try Out 1 Matematika — Latihan Interaktif</title>
+<style>
+:root{--ink:#172033;--muted:#64748b;--line:#dbe2ea;--bg:#f3f6fb;--card:#fff;--accent:#3157d5;--good:#087443;--bad:#b42318}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{background:linear-gradient(120deg,#172554,#3157d5);color:white;padding:26px 16px}header .wrap,main{max-width:900px;margin:auto}h1{margin:0 0 6px;font-size:clamp(1.5rem,4vw,2.2rem)}header p{margin:0;color:#e0e7ff}
+main{padding:18px 12px 50px}.panel,.question{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:18px;margin:0 0 14px;box-shadow:0 3px 12px #1e293b08}
+.info{display:grid;grid-template-columns:1fr 1fr;gap:12px}.info label{display:block;font-weight:650}.info input{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:9px;font:inherit;margin-top:5px}
+.topline{display:flex;justify-content:space-between;gap:12px;align-items:center}.tag{font-size:.8rem;background:#eef2ff;color:#3449a8;padding:4px 9px;border-radius:99px;font-weight:700}
+.qtitle{font-weight:750;margin:0 0 10px}.options{display:grid;gap:8px}.opt{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;cursor:pointer}.opt:has(input:checked){border-color:var(--accent);background:#f4f6ff}.opt input{margin-top:5px;accent-color:var(--accent);flex:0 0 auto}
+table{border-collapse:collapse;width:100%;margin:12px 0}td,th{border:1px solid var(--line);padding:9px;text-align:left}th{background:#f1f5f9}td input{accent-color:var(--accent)}
+.small{color:var(--muted);font-size:.92rem}.actions{display:flex;flex-wrap:wrap;gap:10px}.btn{border:0;border-radius:10px;padding:12px 16px;font:inherit;font-weight:750;cursor:pointer}.primary{background:var(--accent);color:white}.secondary{background:#e2e8f0;color:#172033}.result{display:none}.score{font-size:2rem;font-weight:850}.review{border-top:1px solid var(--line);padding:12px 0}.correct{color:var(--good);font-weight:750}.wrong{color:var(--bad);font-weight:750}.explain{color:var(--muted);font-size:.94rem}.sticky{position:sticky;bottom:8px;z-index:5;background:#ffffffed;backdrop-filter:blur(8px);padding:10px;border:1px solid var(--line);border-radius:14px;box-shadow:0 5px 20px #0f172a12}
+@media(max-width:560px){.info{grid-template-columns:1fr}.panel,.question{padding:14px}.topline{align-items:flex-start}}
+</style>
+</head>
+<body>
+<header><div class="wrap"><h1>Try Out Paket 1 — Matematika</h1><p>Latihan interaktif • 25 soal • nilai otomatis</p></div></header>
+<main>
+<section class="panel">
+ <div class="info">
+  <label>Nama peserta<input id="student" placeholder="Nama lengkap"></label>
+  <label>Kelas<input id="class" placeholder="Contoh: 9A"></label>
+ </div>
+ <p class="small">Pilih jawaban untuk setiap soal. Soal bertanda <b>pilih semua yang benar</b> dapat memiliki lebih dari satu jawaban. Soal Benar/Salah meminta jawaban untuk setiap pernyataan. Nilai dihitung setelah menekan tombol <b>Periksa Jawaban</b>.</p>
+ <p><b>Catatan:</b> ini versi web latihan yang diketik ulang dari bagian Matematika Try Out Paket 1 pada PDF yang diunggah. Beberapa diagram disederhanakan menjadi deskripsi teks.</p>
+</section>
+<div id="quiz"></div>
+<section class="panel sticky">
+ <div class="actions"><button class="btn primary" onclick="grade()">Periksa Jawaban & Hitung Nilai</button><button class="btn secondary" onclick="resetQuiz()">Ulangi Try Out</button></div>
+ <p class="small" id="progress">0 dari 25 soal telah dijawab.</p>
+</section>
+<section id="result" class="panel result" aria-live="polite"></section>
+</main>
+<script>
+const questions = [
+{n:1,type:'single',topic:'Bilangan',q:'Nilai dari 3¾ − 125% × 1,6 + 9/100 ÷ 0,3 adalah …',opts:['2,00','2,05','2,10','2,15'],a:[1],exp:'3,75 − (1,25 × 1,6) + (0,09 ÷ 0,3) = 3,75 − 2 + 0,3 = 2,05.'},
+{n:2,type:'multi',topic:'Faktor persekutuan',q:'Diberikan bilangan (8² + 176), (24 × 35), dan (19² − 1). Faktor persekutuan ketiganya yang benar adalah … (pilih semua yang benar)',opts:['2³ × 5','2³ × 7','2² × 3 × 5','2² × 3 × 7'],a:[0,2],exp:'Ketiga bilangan itu 240, 840, dan 360. Faktor 40 dan 60 membagi ketiganya.'},
+{n:3,type:'single',topic:'Perbandingan',q:'Harga ¼ kg tomat adalah Rp3.000,00. Harga 3½ kg tomat adalah …',opts:['Rp30.000,00','Rp36.000,00','Rp42.000,00','Rp48.000,00'],a:[2],exp:'1 kg = Rp12.000,00, jadi 3,5 kg = Rp42.000,00.'},
+{n:4,type:'single',topic:'Notasi ilmiah',q:'Dalam 1 ml air terdapat 3,6 × 10³ bakteri. Berapa jumlah bakteri dalam 0,5 liter air?',opts:['1,8 × 10⁵','1,8 × 10⁶','3,6 × 10⁵','3,6 × 10⁶'],a:[1],exp:'0,5 liter = 500 ml. 3,6 × 10³ × 500 = 1,8 × 10⁶.'},
+{n:5,type:'tf',topic:'KPK',q:'Dua kelompok bersorak setiap 12 detik dan 18 detik, mulai bersamaan pukul 07.00. Tentukan Benar atau Salah.',rows:['Kedua kelompok bersorak bersama setiap 36 detik.','Hingga pukul 07.03, keduanya bersorak bersama sebanyak 6 kali, termasuk saat start.','Dalam menit pertama, kelompok yang bersorak setiap 12 detik bersorak sebanyak 5 kali, termasuk saat start.'],a:[true,true,false],exp:'KPK(12,18)=36. Dalam 180 detik, kejadian bersama pada detik 0, 36, 72, 108, 144, 180 (6 kali). Kelompok 12 detik bersorak pada 0,12,24,36,48,60: 6 kali.'},
+{n:6,type:'multi',topic:'Skala',q:'Peta berskala 1 : 200.000. Pasar–sekolah 3 cm; rumah–kantor desa 2,5 cm; sekolah–kantor desa 4 cm. Pernyataan yang benar adalah …',opts:['1 cm pada peta mewakili 0,2 km sebenarnya.','Jarak sebenarnya pasar ke sekolah adalah 6 km.','Jarak sebenarnya rumah ke kantor desa adalah 5 km.','Jika jarak sebenarnya pasar ke kantor desa 10 km, jarak pada peta 5 cm.'],a:[0,1,2,3],exp:'Skala 1:200.000 berarti 1 cm = 2 km. Semua pernyataan benar.'},
+{n:7,type:'single',topic:'Aljabar',q:'Rani membeli 3 buku dan 2 pensil. Sinta membeli 2 buku, 4 pensil, dan 1 penghapus. Jika harga satuan berturut-turut x, y, dan z, total belanja mereka adalah …',opts:['5x + 6y + z','5x + 4y + z','4x + 7y + z','5x + 6y − z'],a:[0],exp:'Jumlahkan banyak barang: 5 buku, 6 pensil, dan 1 penghapus.'},
+{n:8,type:'single',topic:'Persamaan',q:'Jumlah sepeda motor dua kali jumlah mobil. Jika total kendaraan 36, jumlah sepeda motor adalah …',opts:['11','12','22','24'],a:[3],exp:'Misal mobil m, motor 2m. 3m=36, sehingga motor=24.'},
+{n:9,type:'tf',topic:'SPLDV',q:'Sistem 3x + ay = 9 dan bx − 2y = −18 memiliki solusi (x,y) = (−2,5). Tentukan Benar atau Salah.',rows:['a merupakan bilangan ganjil.','b merupakan bilangan genap.','2a + 5b = 27.'],a:[true,true,false],exp:'−6+5a=9 sehingga a=3. −2b−10=−18 sehingga b=4. Maka 2a+5b=26.'},
+{n:10,type:'multi',topic:'Fungsi linear',q:'Tarif ojek pada grafik melalui titik (2,9), (4,13), dan (6,17), dengan x jarak (km) dan y tarif (ribuan rupiah). Jarak rumah ke nenek 7 km. Pernyataan yang benar adalah …',opts:['Fungsi tarif f(x)=2.000x+5.000 rupiah.','Tarif ke rumah nenek Rp19.000,00.','Minimarket 3 km sebelum rumah nenek; tarif rumah ke minimarket Rp11.000,00.','Jika tarif perjalanan dari rumah nenek ke toko buku Rp25.000,00, jaraknya 10 km.'],a:[0,1,3],exp:'Grafik memberi f(x)=2x+5 (ribuan rupiah). Untuk 7 km tarif 19 ribu. Minimarket berjarak 4 km dari rumah, tarifnya 13 ribu. Tarif 25 ribu setara 10 km.'},
+{n:11,type:'tf',topic:'Barisan aritmetika',q:'Kursi per baris membentuk barisan 20, 24, 28, … hingga 15 baris. Tentukan Benar atau Salah.',rows:['Baris ke-15 berisi 75 kursi.','Rumus banyak kursi baris ke-n adalah Uₙ = 4n + 16.','Jumlah seluruh kursi adalah 720 kursi.'],a:[false,true,true],exp:'U15=20+14×4=76, bukan 75. Uₙ=20+(n−1)4=4n+16. Jumlah 15 baris = 15/2 × (20+76)=720.'},
+{n:12,type:'single',topic:'Sudut segitiga',q:'Atap membentuk segitiga sama kaki dengan sudut puncak 40°. Besar setiap sudut alas adalah …',opts:['80°','75°','70°','60°'],a:[2],exp:'Dua sudut alas sama besar: (180°−40°)÷2=70°.'},
+{n:13,type:'single',topic:'Teorema Pythagoras',q:'Tiang bendera tingginya 11 m. Ujung tali di tanah berjarak 5 m dari kaki tiang. Panjang tali minimal yang harus dibeli (dijual per meter) adalah …',opts:['12 meter','13 meter','14 meter','15 meter'],a:[1],exp:'Panjang tali = √(11²+5²)=√146≈12,08 m, jadi harus membeli 13 meter.'},
+{n:14,type:'tf',topic:'Luas dan keliling',q:'Taman terdiri dari persegi panjang 21 m × 14 m dan setengah lingkaran berdiameter 14 m. Bunga ditanam di setengah lingkaran. Tentukan Benar atau Salah.',rows:['Luas seluruh taman adalah 371 m².','Keliling batas area setengah lingkaran yang dipagari adalah 44 m.','Biaya mengganti rumput pada bagian persegi panjang dengan harga Rp40.000,00/m² adalah Rp11.660.000,00.'],a:[true,false,false],exp:'Luas = 21×14 + ½×π×7² = 294+77=371 m² (π=22/7). Keliling setengah lingkaran termasuk diameter = 22+14=36 m. Luas rumput persegi panjang 294 m², biaya Rp11.760.000,00.'},
+{n:15,type:'multi',topic:'Volume dan luas permukaan',q:'Akuarium terbuka berukuran 40 cm × 30 cm × 25 cm penuh air. Bola berdiameter 21 cm dimasukkan seluruhnya hingga terendam. Pernyataan yang benar adalah … (gunakan π=22/7)',opts:['Volume akuarium 30 liter.','Volume air tumpah 4.851 cm³.','Sisa volume air dalam akuarium setelah bola dimasukkan 25.149 cm³.','Luas permukaan akuarium 5.900 cm².'],a:[0,1,2],exp:'Volume balok=30.000 cm³=30 L. Volume bola=4/3×22/7×10,5³=4.851 cm³. Sisa air=30.000−4.851=25.149 cm³. Luas dasar dan empat sisi = 1.200+2.000+1.500=4.700 cm² (tanpa tutup).'},
+{n:16,type:'single',topic:'Kesebangunan',q:'Pada segitiga ABC, DE sejajar BC. Perbandingan keliling ABC : ADE = 5 : 2. Jika DB = 9 cm, panjang AB adalah …',opts:['10 cm','12 cm','15 cm','20 cm'],a:[2],exp:'AB : AD = 5 : 2, sehingga DB=AB−AD=(3/5)AB=9. Maka AB=15 cm.'},
+{n:17,type:'single',topic:'Transformasi geometri',q:'Bangun ABCD dicerminkan terhadap garis y=x, kemudian diputar 90° berlawanan arah jarum jam dengan pusat O. Berdasarkan posisi titik pada gambar soal, titik bayangan yang berada di kuadran I adalah …',opts:['Titik A dan B','Titik C','Titik D','Tidak ada'],a:[1],exp:'Transformasi gabungannya (x,y) → (−y,x). Berdasarkan koordinat pada gambar, titik C berpindah ke kuadran I.'},
+{n:18,type:'tf',topic:'Membaca diagram batang',q:'Diagram pengunjung wisata menunjukkan Januari 800, Februari 1.200, Maret 1.000, April 1.600, dan Mei 1.400 orang. Tentukan Benar atau Salah.',rows:['Jumlah pengunjung terbanyak terjadi pada bulan April.','Jumlah pengunjung Februari dan Maret sama dengan jumlah Januari dan April.','Penurunan pengunjung pada Maret dibandingkan Februari adalah 300 orang.'],a:[true,false,false],exp:'April tertinggi (1.600). Februari+Maret=2.200, Januari+April=2.400. Penurunan Februari ke Maret=200.'},
+{n:19,type:'single',topic:'Rata-rata',q:'Bandros kecil 20 g, sedang 25 g, besar 30 g. Dalam kotak berisi 2 besar, 4 sedang, dan 1 kecil. Agar 10 kue memiliki rata-rata 25 g, tiga kue tambahan harus berupa …',opts:['3 kue sedang','2 kue besar dan 1 kue kecil','1 kue besar dan 2 kue kecil','1 kue besar, 1 sedang, dan 1 kecil'],a:[0],exp:'Target total berat 10×25=250 g. Berat yang sudah ada=2×30+4×25+20=180 g, sehingga tambahan harus 70 g. Tiga kue sedang beratnya 75 g; opsi pada naskah tampaknya tidak konsisten dengan angka yang diberikan. Periksa kembali soal asli sebelum menggunakan kunci ini.'},
+{n:20,type:'multi',topic:'Peluang',q:'Peluang terkena demam adalah 0,25 pada kelompok 120 orang. Pernyataan yang benar adalah …',opts:['Jumlah orang yang mungkin terkena demam adalah 25 orang.','Jumlah orang yang mungkin tidak terkena demam adalah 90 orang.','Dari setiap 4 orang, mungkin 1 orang terkena demam.','Jika peluang berubah menjadi 0,30, jumlah orang yang mungkin terkena demam adalah 36.'],a:[1,2,3],exp:'0,25×120=30, jadi yang tidak terkena diperkirakan 90 orang. Peluang 0,25=1/4. Jika 0,30×120=36.'},
+{n:21,type:'single',topic:'Bilangan bulat',q:'Suhu minuman mula-mula 18°C turun 2°C setiap 5 menit. Suhu setelah 1 jam adalah …',opts:['−8°C','−6°C','−4°C','−2°C'],a:[1],exp:'Dalam 60 menit ada 12 interval. Penurunan 12×2=24°C, sehingga suhu akhir 18−24=−6°C.'},
+{n:22,type:'single',topic:'Perbandingan berbalik nilai',q:'Pekerjaan selesai oleh 10 orang dalam 21 hari. Setelah bekerja 3 hari, pekerjaan berhenti 3 hari. Agar selesai tepat sesuai jadwal awal, berapa pekerja tambahan diperlukan?',opts:['1 orang','2 orang','3 orang','4 orang'],a:[1],exp:'Total 210 orang-hari. Sisa pekerjaan 180 orang-hari dan waktu tersisa 15 hari, perlu 12 pekerja. Tambahan 2 orang.'},
+{n:23,type:'single',topic:'Eksponen',q:'Nilai x yang memenuhi 1 / 3^(x+1) = 81 adalah …',opts:['−5','5','−4','4'],a:[0],exp:'1/3^(x+1)=3⁴ berarti 3^(−x−1)=3⁴, sehingga −x−1=4 dan x=−5.'},
+{n:24,type:'single',topic:'Persamaan garis',q:'Persamaan garis melalui A(−2,3) dan sejajar dengan 3y − 6x + 7 = 0 adalah …',opts:['y = 2x − 5','y = 2x + 5','y = 2x − 7','y = 2x + 7'],a:[3],exp:'Garis awal memiliki gradien 2. Garis sejajar: y=2x+c. Substitusi (−2,3): 3=−4+c, maka c=7. Jadi y=2x+7.'},
+{n:25,type:'single',topic:'Teorema Pythagoras',q:'Tangga bersandar pada tembok setinggi 2 m. Jarak kaki tangga ke tembok 1,5 m. Panjang tangga adalah …',opts:['4 m','3,5 m','2,5 m','2,4 m'],a:[2],exp:'Panjang tangga=√(2²+1,5²)=√6,25=2,5 m.'}
+];
+function render(){
+ const host=document.getElementById('quiz');
+ host.innerHTML=questions.map(q=>{
+  let body='';
+  if(q.type==='tf'){
+   body='<table><thead><tr><th>Pernyataan</th><th>Benar</th><th>Salah</th></tr></thead><tbody>'+q.rows.map((r,i)=>`<tr><td>${r}</td><td><input aria-label="Soal ${q.n}, pernyataan ${i+1}, benar" type="radio" name="q${q.n}_${i}" value="true" onchange="updateProgress()"></td><td><input aria-label="Soal ${q.n}, pernyataan ${i+1}, salah" type="radio" name="q${q.n}_${i}" value="false" onchange="updateProgress()"></td></tr>`).join('')+'</tbody></table>';
+  }else{
+   body='<div class="options">'+q.opts.map((o,i)=>`<label class="opt"><input type="${q.type==='multi'?'checkbox':'radio'}" name="q${q.n}" value="${i}" onchange="updateProgress()"><span>${String.fromCharCode(65+i)}. ${o}</span></label>`).join('')+'</div>';
+  }
+  return `<section class="question" id="card${q.n}"><div class="topline"><span class="tag">Soal ${q.n}</span><span class="small">${q.topic}</span></div><p class="qtitle">${q.q}</p>${body}<div class="reviewbox" id="review${q.n}"></div></section>`;
+ }).join('');
+}
+function getAnswer(q){
+ if(q.type==='tf')return q.rows.map((_,i)=>{let x=document.querySelector(`input[name="q${q.n}_${i}"]:checked`);return x?x.value==='true':null});
+ return [...document.querySelectorAll(`input[name="q${q.n}"]:checked`)].map(x=>Number(x.value)).sort((a,b)=>a-b);
+}
+function isAnswered(q,v){return q.type==='tf'?v.every(x=>x!==null):v.length>0}
+function same(a,b){return a.length===b.length&&a.every((x,i)=>x===b[i])}
+function updateProgress(){let n=questions.filter(q=>isAnswered(q,getAnswer(q))).length;document.getElementById('progress').textContent=`${n} dari ${questions.length} soal telah dijawab.`}
+function grade(){
+ let total=0,answered=0;
+ questions.forEach(q=>{
+  const v=getAnswer(q);if(isAnswered(q,v))answered++;
+  let ok=q.type==='tf'?same(v,q.a):same(v,q.a);
+  if(ok)total++;
+  const box=document.getElementById('review'+q.n);
+  box.innerHTML=`<div class="${ok?'correct':'wrong'}">${ok?'Benar ✓':'Belum tepat'} ${!isAnswered(q,v)?'— belum dijawab':''}</div><div class="explain"><b>Kunci:</b> ${q.type==='tf'?q.a.map(x=>x?'Benar':'Salah').join(' • '):q.a.map(i=>String.fromCharCode(65+i)).join(', ')}. ${q.exp}</div>`;
+ });
+ const score=Math.round(total/questions.length*100);
+ const result=document.getElementById('result');result.style.display='block';
+ result.innerHTML=`<div class="topline"><div><div class="small">Hasil ${escapeHTML(document.getElementById('student').value||'Peserta')}</div><div class="score">${score}/100</div><b>${total} dari ${questions.length} soal benar</b></div><span class="tag">${answered}/${questions.length} terjawab</span></div><p>Nilai menggunakan bobot sama untuk setiap nomor. Soal Benar/Salah dan pilih-semua dinilai benar jika seluruh respons pada nomor itu tepat.</p><button class="btn secondary" onclick="window.print()">Cetak hasil</button>`;
+ result.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function escapeHTML(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function resetQuiz(){if(confirm('Hapus semua jawaban dan mulai ulang?')){document.querySelectorAll('#quiz input').forEach(x=>x.checked=false);document.querySelectorAll('.reviewbox').forEach(x=>x.innerHTML='');document.getElementById('result').style.display='none';updateProgress();window.scrollTo({top:0,behavior:'smooth'})}}
+render();updateProgress();
+</script>
+</body>
+</html>
