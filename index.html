@@ -69,6 +69,110 @@ const questions = [
 {n:24,type:'single',topic:'Persamaan garis',q:'Persamaan garis melalui A(−2,3) dan sejajar dengan 3y − 6x + 7 = 0 adalah …',opts:['y = 2x − 5','y = 2x + 5','y = 2x − 7','y = 2x + 7'],a:[3],exp:'Garis awal memiliki gradien 2. Garis sejajar: y=2x+c. Substitusi (−2,3): 3=−4+c, maka c=7. Jadi y=2x+7.'},
 {n:25,type:'single',topic:'Teorema Pythagoras',q:'Tangga bersandar pada tembok setinggi 2 m. Jarak kaki tangga ke tembok 1,5 m. Panjang tangga adalah …',opts:['4 m','3,5 m','2,5 m','2,4 m'],a:[2],exp:'Panjang tangga=√(2²+1,5²)=√6,25=2,5 m.'}
 ];
+
+const STORAGE_KEY = 'tryOutMatematikaPaket1_progress_v1';
+
+let saveTimer = null;
+
+function saveProgress() {
+  try {
+    const data = {
+      version: 1,
+      student: document.getElementById('student').value,
+      className: document.getElementById('class').value,
+      answers: {},
+      submitted: Boolean(window.quizSubmitted),
+      savedAt: new Date().toISOString()
+    };
+
+    questions.forEach(q => {
+      data.answers[q.n] = getAnswer(q);
+    });
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
+    const status = document.getElementById('saveStatus');
+    if (status) {
+      status.textContent = '✓ Progres tersimpan di perangkat ini.';
+    }
+  } catch (error) {
+    const status = document.getElementById('saveStatus');
+    if (status) {
+      status.textContent =
+        'Progres tidak dapat disimpan. Periksa pengaturan browser.';
+    }
+  }
+}
+
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveProgress, 150);
+}
+
+function restoreProgress() {
+  let data;
+
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) {
+      document.getElementById('saveStatus').textContent =
+        'Jawaban akan disimpan otomatis di perangkat ini.';
+      return;
+    }
+
+    data = JSON.parse(saved);
+
+    document.getElementById('student').value = data.student || '';
+    document.getElementById('class').value = data.className || '';
+
+    questions.forEach(q => {
+      const values = data.answers?.[q.n];
+      if (!Array.isArray(values)) return;
+
+      if (q.type === 'tf') {
+        values.forEach((value, i) => {
+          if (value === null || value === undefined) return;
+
+          const input = document.querySelector(
+            `input[name="q${q.n}_${i}"][value="${value}"]`
+          );
+
+          if (input) input.checked = true;
+        });
+      } else {
+        values.forEach(value => {
+          const input = document.querySelector(
+            `input[name="q${q.n}"][value="${value}"]`
+          );
+
+          if (input) input.checked = true;
+        });
+      }
+    });
+
+    if (data.submitted) {
+      // Restore answers first, then reconstruct the graded result.
+      window.quizSubmitted = false;
+      grade();
+    } else {
+      updateProgress();
+      document.getElementById('saveStatus').textContent =
+        '✓ Progres sebelumnya berhasil dipulihkan.';
+    }
+  } catch (error) {
+    document.getElementById('saveStatus').textContent =
+      'Data progres tidak dapat dibaca. Jawaban baru tetap bisa disimpan.';
+  }
+}
+
+function clearSavedProgress() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (error) {
+    // The reset still clears the visible quiz.
+  }
+}
+  
 function render(){
  const host=document.getElementById('quiz');
  host.innerHTML=questions.map(q=>{
@@ -87,10 +191,18 @@ function getAnswer(q){
 }
 function isAnswered(q,v){return q.type==='tf'?v.every(x=>x!==null):v.length>0}
 function same(a,b){return a.length===b.length&&a.every((x,i)=>x===b[i])}
-function updateProgress(){let n=questions.filter(q=>isAnswered(q,getAnswer(q))).length;document.getElementById('progress').textContent=`${n} dari ${questions.length} soal telah dijawab.`}
+function updateProgress() {
+  const n = questions.filter(q => isAnswered(q, getAnswer(q))).length;
 
+  document.getElementById('progress').textContent =
+    `${n} dari ${questions.length} soal telah dijawab.`;
+
+  scheduleSave();
+}
+  
 function grade() {
   if (window.quizSubmitted) return;
+  saveProgress();
 
   window.quizSubmitted = true;
 
@@ -200,6 +312,7 @@ function escapeHTML(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','
 
 function resetQuiz() {
   if (!confirm('Hapus semua jawaban dan mulai ulang?')) return;
+  clearSavedProgress();
 
   window.quizSubmitted = false;
 
@@ -223,7 +336,9 @@ function resetQuiz() {
   updateProgress();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-  render();
+render();
+setupIdentityAutosave();
+restoreProgress();
 updateProgress();
 </script>
 </body>
