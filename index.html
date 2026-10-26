@@ -102,12 +102,7 @@ function grade(){
   answerKey: q.a
 }));
 
-sendToGoogleSheets(score, total, answered, answers)
-  .then(message => {
-    const status = document.getElementById('submissionStatus');
-    if (status) status.textContent = message;
-    else alert(message);
-  });
+result.scrollIntoView({behavior:'smooth',block:'start'});
 const result=document.getElementById('result');
 result.style.display='block';
 
