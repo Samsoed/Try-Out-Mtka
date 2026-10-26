@@ -167,15 +167,6 @@ function grade() {
     if (status) status.textContent = message;
   });
 }
-
-result.scrollIntoView({behavior:'smooth',block:'start'});
-const result=document.getElementById('result');
-result.style.display='block';
-
-result.innerHTML=`<div class="topline"><div><div class="small">Hasil ${escapeHTML(document.getElementById('student').value||'Peserta')}</div><div class="score">${score}/100</div><b>${total} dari ${questions.length} soal benar</b></div><span class="tag">${answered}/${questions.length} terjawab</span></div><p>Nilai menggunakan bobot sama untuk setiap nomor. Soal Benar/Salah dan pilih-semua dinilai benar jika seluruh respons pada nomor itu tepat.</p><p id="submissionStatus" class="small">Mengirim hasil ke Google Sheets...</p><button class="btn secondary" onclick="window.print()">Cetak hasil</button>`;
-
-result.scrollIntoView({behavior:'smooth',block:'start'});
-}
  
 async function sendToGoogleSheets(score, correct, answered, answers) {
   if (GOOGLE_SCRIPT_URL.includes('PASTE_YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE')) {
