@@ -172,6 +172,11 @@ function clearSavedProgress() {
     // The reset still clears the visible quiz.
   }
 }
+
+function setupIdentityAutosave() {
+  document.getElementById('student').addEventListener('input', scheduleSave);
+  document.getElementById('class').addEventListener('input', scheduleSave);
+}
   
 function render(){
  const host=document.getElementById('quiz');
