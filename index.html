@@ -15,6 +15,10 @@ main{padding:18px 12px 50px}.panel,.question{background:var(--card);border:1px s
 table{border-collapse:collapse;width:100%;margin:12px 0}td,th{border:1px solid var(--line);padding:9px;text-align:left}th{background:#f1f5f9}td input{accent-color:var(--accent)}
 .small{color:var(--muted);font-size:.92rem}.actions{display:flex;flex-wrap:wrap;gap:10px}.btn{border:0;border-radius:10px;padding:12px 16px;font:inherit;font-weight:750;cursor:pointer}.primary{background:var(--accent);color:white}.secondary{background:#e2e8f0;color:#172033}.result{display:none}.score{font-size:2rem;font-weight:850}.review{border-top:1px solid var(--line);padding:12px 0}.correct{color:var(--good);font-weight:750}.wrong{color:var(--bad);font-weight:750}.explain{color:var(--muted);font-size:.94rem}.sticky{position:sticky;bottom:8px;z-index:5;background:#ffffffed;backdrop-filter:blur(8px);padding:10px;border:1px solid var(--line);border-radius:14px;box-shadow:0 5px 20px #0f172a12}
 @media(max-width:560px){.info{grid-template-columns:1fr}.panel,.question{padding:14px}.topline{align-items:flex-start}}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 </style>
 </head>
 <body>
@@ -84,23 +88,85 @@ function getAnswer(q){
 function isAnswered(q,v){return q.type==='tf'?v.every(x=>x!==null):v.length>0}
 function same(a,b){return a.length===b.length&&a.every((x,i)=>x===b[i])}
 function updateProgress(){let n=questions.filter(q=>isAnswered(q,getAnswer(q))).length;document.getElementById('progress').textContent=`${n} dari ${questions.length} soal telah dijawab.`}
-function grade(){
- let total=0,answered=0;
- questions.forEach(q=>{
-  const v=getAnswer(q);if(isAnswered(q,v))answered++;
-  let ok=q.type==='tf'?same(v,q.a):same(v,q.a);
-  if(ok)total++;
-  const box=document.getElementById('review'+q.n);
-  box.innerHTML=`<div class="${ok?'correct':'wrong'}">${ok?'Benar ✓':'Belum tepat'} ${!isAnswered(q,v)?'— belum dijawab':''}</div><div class="explain"><b>Kunci:</b> ${q.type==='tf'?q.a.map(x=>x?'Benar':'Salah').join(' • '):q.a.map(i=>String.fromCharCode(65+i)).join(', ')}. ${q.exp}</div>`;
- });
- const score=Math.round(total/questions.length*100);
- const answers = questions.map(q => ({
-  questionNumber: q.n,
-  topic: q.topic,
-  response: getAnswer(q),
-  correct: same(getAnswer(q), q.a),
-  answerKey: q.a
-}));
+
+function grade() {
+  if (window.quizSubmitted) return;
+
+  window.quizSubmitted = true;
+
+  let total = 0;
+  let answered = 0;
+
+  questions.forEach(q => {
+    const v = getAnswer(q);
+
+    if (isAnswered(q, v)) answered++;
+
+    const ok = same(v, q.a);
+    if (ok) total++;
+
+    const box = document.getElementById('review' + q.n);
+    box.innerHTML = `
+      <div class="${ok ? 'correct' : 'wrong'}">
+        ${ok ? 'Benar ✓' : 'Belum tepat'}
+        ${!isAnswered(q, v) ? '— belum dijawab' : ''}
+      </div>
+      <div class="explain">
+        <b>Kunci:</b>
+        ${q.type === 'tf'
+          ? q.a.map(x => x ? 'Benar' : 'Salah').join(' • ')
+          : q.a.map(i => String.fromCharCode(65 + i)).join(', ')}.
+        ${q.exp}
+      </div>`;
+  });
+
+  const score = Math.round(total / questions.length * 100);
+
+  const answers = questions.map(q => ({
+    questionNumber: q.n,
+    topic: q.topic,
+    response: getAnswer(q),
+    correct: same(getAnswer(q), q.a),
+    answerKey: q.a
+  }));
+
+  // Freeze the questions and the submit button.
+  document.querySelectorAll('#quiz input').forEach(el => {
+    el.disabled = true;
+  });
+
+  document.querySelectorAll('.sticky button').forEach(el => {
+    if (el.textContent.includes('Periksa Jawaban')) {
+      el.disabled = true;
+    }
+  });
+
+  const result = document.getElementById('result');
+  result.style.display = 'block';
+
+  result.innerHTML = `
+    <div class="topline">
+      <div>
+        <div class="small">
+          Hasil ${escapeHTML(document.getElementById('student').value || 'Peserta')}
+        </div>
+        <div class="score">${score}/100</div>
+        <b>${total} dari ${questions.length} soal benar</b>
+      </div>
+      <span class="tag">${answered}/${questions.length} terjawab</span>
+    </div>
+    <p>Nilai menggunakan bobot sama untuk setiap nomor.
+    Soal Benar/Salah dan pilih-semua dinilai benar jika seluruh respons pada nomor itu tepat.</p>
+    <p id="submissionStatus" class="small">Mengirim hasil ke Google Sheets...</p>
+    <button class="btn secondary" onclick="window.print()">Cetak hasil</button>`;
+
+  result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  sendToGoogleSheets(score, total, answered, answers).then(message => {
+    const status = document.getElementById('submissionStatus');
+    if (status) status.textContent = message;
+  });
+}
 
 result.scrollIntoView({behavior:'smooth',block:'start'});
 const result=document.getElementById('result');
@@ -140,8 +206,32 @@ async function sendToGoogleSheets(score, correct, answered, answers) {
 }
  
 function escapeHTML(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function resetQuiz(){if(confirm('Hapus semua jawaban dan mulai ulang?')){document.querySelectorAll('#quiz input').forEach(x=>x.checked=false);document.querySelectorAll('.reviewbox').forEach(x=>x.innerHTML='');document.getElementById('result').style.display='none';updateProgress();window.scrollTo({top:0,behavior:'smooth'})}}
-render();updateProgress();
+
+function resetQuiz() {
+  if (!confirm('Hapus semua jawaban dan mulai ulang?')) return;
+
+  window.quizSubmitted = false;
+
+  document.querySelectorAll('#quiz input').forEach(el => {
+    el.checked = false;
+    el.disabled = false;
+  });
+
+  document.querySelectorAll('.reviewbox').forEach(el => {
+    el.innerHTML = '';
+  });
+
+  document.querySelectorAll('.sticky button').forEach(el => {
+    el.disabled = false;
+  });
+
+  const result = document.getElementById('result');
+  result.style.display = 'none';
+  result.innerHTML = '';
+
+  updateProgress();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 </script>
 </body>
 </html>
