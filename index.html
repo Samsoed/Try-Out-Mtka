@@ -36,6 +36,8 @@ table{border-collapse:collapse;width:100%;margin:12px 0}td,th{border:1px solid v
 <section id="result" class="panel result" aria-live="polite"></section>
 </main>
 <script>
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw1Rrk7snFkJHMSJrA7ecNrQye0wetbl97jplbMmXVDYpo6sFGQqb4pRg0dcHDT4kiA/exec';
+ 
 const questions = [
 {n:1,type:'single',topic:'Bilangan',q:'Nilai dari 3¾ − 125% × 1,6 + 9/100 ÷ 0,3 adalah …',opts:['2,00','2,05','2,10','2,15'],a:[1],exp:'3,75 − (1,25 × 1,6) + (0,09 ÷ 0,3) = 3,75 − 2 + 0,3 = 2,05.'},
 {n:2,type:'multi',topic:'Faktor persekutuan',q:'Diberikan bilangan (8² + 176), (24 × 35), dan (19² − 1). Faktor persekutuan ketiganya yang benar adalah … (pilih semua yang benar)',opts:['2³ × 5','2³ × 7','2² × 3 × 5','2² × 3 × 7'],a:[0,2],exp:'Ketiga bilangan itu 240, 840, dan 360. Faktor 40 dan 60 membagi ketiganya.'},
@@ -92,10 +94,56 @@ function grade(){
   box.innerHTML=`<div class="${ok?'correct':'wrong'}">${ok?'Benar ✓':'Belum tepat'} ${!isAnswered(q,v)?'— belum dijawab':''}</div><div class="explain"><b>Kunci:</b> ${q.type==='tf'?q.a.map(x=>x?'Benar':'Salah').join(' • '):q.a.map(i=>String.fromCharCode(65+i)).join(', ')}. ${q.exp}</div>`;
  });
  const score=Math.round(total/questions.length*100);
- const result=document.getElementById('result');result.style.display='block';
- result.innerHTML=`<div class="topline"><div><div class="small">Hasil ${escapeHTML(document.getElementById('student').value||'Peserta')}</div><div class="score">${score}/100</div><b>${total} dari ${questions.length} soal benar</b></div><span class="tag">${answered}/${questions.length} terjawab</span></div><p>Nilai menggunakan bobot sama untuk setiap nomor. Soal Benar/Salah dan pilih-semua dinilai benar jika seluruh respons pada nomor itu tepat.</p><button class="btn secondary" onclick="window.print()">Cetak hasil</button>`;
- result.scrollIntoView({behavior:'smooth',block:'start'});
+ const answers = questions.map(q => ({
+  questionNumber: q.n,
+  topic: q.topic,
+  response: getAnswer(q),
+  correct: same(getAnswer(q), q.a),
+  answerKey: q.a
+}));
+
+sendToGoogleSheets(score, total, answered, answers)
+  .then(message => {
+    const status = document.getElementById('submissionStatus');
+    if (status) status.textContent = message;
+    else alert(message);
+  });
+const result=document.getElementById('result');
+result.style.display='block';
+
+result.innerHTML=`<div class="topline"><div><div class="small">Hasil ${escapeHTML(document.getElementById('student').value||'Peserta')}</div><div class="score">${score}/100</div><b>${total} dari ${questions.length} soal benar</b></div><span class="tag">${answered}/${questions.length} terjawab</span></div><p>Nilai menggunakan bobot sama untuk setiap nomor. Soal Benar/Salah dan pilih-semua dinilai benar jika seluruh respons pada nomor itu tepat.</p><p id="submissionStatus" class="small">Mengirim hasil ke Google Sheets...</p><button class="btn secondary" onclick="window.print()">Cetak hasil</button>`;
+
+result.scrollIntoView({behavior:'smooth',block:'start'});
 }
+ 
+async function sendToGoogleSheets(score, correct, answered, answers) {
+  if (GOOGLE_SCRIPT_URL.includes('PASTE_YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE')) {
+    return 'Not sent: replace the Google Apps Script URL placeholder first.';
+  }
+
+  const payload = {
+    student: document.getElementById('student').value.trim(),
+    className: document.getElementById('class').value.trim(),
+    score: score,
+    correct: correct,
+    totalQuestions: questions.length,
+    answered: answered,
+    answers: answers
+  };
+
+  try {
+    await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: JSON.stringify(payload)
+    });
+
+    return 'Submission request sent. Check Google Sheets to confirm the result was saved.';
+  } catch (error) {
+    return 'Sending failed. Check your internet connection and Web App URL.';
+  }
+}
+ 
 function escapeHTML(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function resetQuiz(){if(confirm('Hapus semua jawaban dan mulai ulang?')){document.querySelectorAll('#quiz input').forEach(x=>x.checked=false);document.querySelectorAll('.reviewbox').forEach(x=>x.innerHTML='');document.getElementById('result').style.display='none';updateProgress();window.scrollTo({top:0,behavior:'smooth'})}}
 render();updateProgress();
